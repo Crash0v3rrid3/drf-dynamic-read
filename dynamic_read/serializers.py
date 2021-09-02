@@ -139,7 +139,7 @@ class DynamicReadSerializerMixin(metaclass=DynamicReadSerializerMeta):
             with suppress(ChildNotSupported, KeyError):
                 nested_field = self.extract_serializer_from_child(fields_map[field])
 
-                if nested_field.dr_meta is not None:
+                if nested_field.dr_meta is None:
                     nested_field.dr_meta = field_meta
 
         return desired_field_names
