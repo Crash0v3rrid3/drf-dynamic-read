@@ -1,5 +1,13 @@
 from collections import defaultdict
+from contextlib import suppress
 from functools import lru_cache
+
+try:
+    from django.db.models import LOOKUP_SEP
+except ImportError:
+    LOOKUP_SEP = "__"
+
+from rest_framework.serializers import ALL_FIELDS
 
 
 @lru_cache(maxsize=2048)
@@ -8,7 +16,8 @@ def get_prefetch_select(serializer_class, filter_fields: tuple, omit_fields: tup
     (
         all_select,
         all_prefetch,
-    ) = serializer_class.get_all_select_prefetch()  # fetch from cache
+    ) = serializer_class.all_select_prefetch  # fetch from cache
+
     if not (filter_fields or omit_fields):
         return all_select, all_prefetch
 
@@ -60,17 +69,17 @@ def get_prefetch_select(serializer_class, filter_fields: tuple, omit_fields: tup
     return final_select, final_prefetch
 
 
-def dynamic_read_meta():
+def dynamic_read_meta() -> dict:
     return dict(
-        fields=set(), omit=set(), id_fields=set(), nested=defaultdict(dynamic_read_meta)
+        fields=set(), omit=set(), nested=defaultdict(dynamic_read_meta)
     )
 
 
 @lru_cache()
 def process_field_options(filter_fields: tuple, omit_fields: tuple) -> dict:
     filter_fields, omit_fields, dr_meta = (
-        (each.split("__") for each in filter_fields),
-        (each.split("__") for each in omit_fields),
+        (each.split(LOOKUP_SEP) for each in filter_fields),
+        (each.split(LOOKUP_SEP) for each in omit_fields),
         dynamic_read_meta(),
     )
 
@@ -82,12 +91,7 @@ def process_field_options(filter_fields: tuple, omit_fields: tuple) -> dict:
             else:
                 parent_field, parent_meta = parent_info
                 field_meta = parent_meta["nested"][parent_field]
-            destination = (
-                field_meta["fields"]
-                if not field.endswith("_id")
-                else field_meta["id_fields"]
-            )
-            destination.add(field)
+            field_meta["fields"].add(field)
             parent_info = field, field_meta
 
     for field_list in omit_fields:
@@ -98,13 +102,12 @@ def process_field_options(filter_fields: tuple, omit_fields: tuple) -> dict:
             else:
                 parent_field, parent_meta = parent_info
                 field_meta = parent_meta["nested"][parent_field]
-            field_meta["fields"] = "__all__"
+            field_meta["fields"] = ALL_FIELDS
             parent_info = field, field_meta
-        try:
+
+        with suppress(IndexError):
             field_to_omit = field_list[-1]
             parent_info[1]["omit"].add(field_to_omit)
-        except IndexError:
-            pass
 
     return dr_meta
 
