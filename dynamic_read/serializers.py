@@ -80,7 +80,6 @@ class DynamicReadSerializerMixin(metaclass=DynamicReadSerializerMeta):
         :param kwargs:
         :param filter_fields: This represents list of fields that should be allowed for serialization
         :param omit_fields: This represents list of fields that shouldn't be allowed for serialization
-        :param optimize_queryset: boolean to enable/disable queryset optimizations
 
         """
 

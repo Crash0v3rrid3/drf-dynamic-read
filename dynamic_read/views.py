@@ -2,8 +2,6 @@ from .serializers import DynamicReadSerializerMixin
 
 
 class DynamicReadViewMixin(object):
-    optimize_queryset = False
-
     @property
     def fields(self):
         unparsed = self.request.query_params.get("fields", "")
@@ -25,7 +23,6 @@ class DynamicReadViewMixin(object):
                 *args,
                 filter_fields=self.fields,
                 omit_fields=self.omit,
-                optimize_queryset=self.optimize_queryset,
                 **kwargs,
             )
         return serializer_class(*args, **kwargs)
