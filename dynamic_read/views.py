@@ -17,7 +17,6 @@ class DynamicReadViewMixin(object):
         kwargs.setdefault("context", self.get_serializer_context())
         if (
             issubclass(serializer_class, DynamicReadSerializerMixin)
-            and self.request.method == "GET"
         ):
             return serializer_class(
                 *args,

@@ -102,6 +102,29 @@ class DynamicReadSerializerMixin(metaclass=DynamicReadSerializerMeta):
         )
         super().__init__(*args, **kwargs)
 
+    def clear_fields_cache(self):
+        if "fields" in self.__dict__:
+            del self.__dict__["fields"]
+
+    @property
+    def _writable_fields(self):
+        self.clear_fields_cache()
+        backup = self.dr_meta
+        self.dr_meta = None
+        try:
+            for field in self.fields.values():
+                if not field.read_only:
+                    yield field
+        finally:
+            self.dr_meta = backup
+
+    @property
+    def _readable_fields(self):
+        self.clear_fields_cache()
+        for field in self.fields.values():
+            if not field.write_only:
+                yield field
+
     def extract_serializer_from_child(self, child):
         """Child object can be a ListSerializer, PresentablePrimaryKeyRelatedField, etc. This method is responsible to
         return a DynamicReadSerializerMixin object(desired child), Override this to handle additional types of child and
